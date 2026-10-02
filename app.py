@@ -25,7 +25,7 @@ TOP_K = 12
 CHUNK_SIZE = 1800
 CHUNK_OVERLAP = 300
 
-app = FastAPI(title="Local Document Chatbot")
+app = FastAPI(title="Document Chatbot")
 
 
 class ChatRequest(BaseModel):

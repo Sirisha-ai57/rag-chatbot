@@ -2,7 +2,7 @@
 
 A local Python chatbot that answers questions from documents stored on your
 Windows laptop.
-
+## Hello
 ## Architecture
 
 Windows documents -> text extraction -> chunks -> Ollama embeddings ->
