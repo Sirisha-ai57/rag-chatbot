@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Document Chatbot</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1000px;margin:30px auto;padding:0 16px}
+textarea,input{width:100%;box-sizing:border-box;padding:10px;margin:6px 0}
+button{padding:10px 16px;margin:5px 5px 5px 0;cursor:pointer}
+#answer{white-space:pre-wrap;background:#f5f5f5;padding:16px;border-radius:8px;min-height:80px}
+
+.row input{flex:1}
+small{color:#666}
+</style>
+</head>
+<body>
+<h1>Local Document Chatbot</h1>
+<p>Ask questions using your documents as the knowledge base.</p>
+
+<h2>1. Documents</h2>
+<p><small>Put PDF, DOCX, TXT or MD files into the <b>documents</b> folder.</small></p>
+<button onclick="ingest()">Ingest local documents</button>
+<span id="status"></span>
+
+<!--
+<h2>2. Download free public documents</h2>
+<div class="row">
+<input id="arxivQuery" value="machine learning" placeholder="arXiv search term">
+<input id="maxResults" type="number" min="1" max="10" value="3" style="max-width:100px">
+<button onclick="downloadArxiv()">Download & index</button>
+</div>
+-->
+
+<h2>3. Ask a question</h2>
+<label for="question"></label><textarea id="question" rows="4"
+                                        placeholder="What do the documents say about ...?"></textarea>
+<button onclick="ask()">Ask</button>
+
+<h2>Answer</h2>
+<div id="answer"></div>
+
+<h3>Sources</h3>
+<ul id="sources"></ul>
+
+<script>
+async function ingest(){
+  setStatus("Indexing...");
+  try{
+    const r=await fetch("/api/ingest",{method:"POST"});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"Ingestion failed");
+    setStatus(`Indexed ${d.files} file(s), ${d.chunks} chunks.`);
+  }catch(e){setStatus(e.message);}
+}
+
+async function downloadArxiv(){
+  setStatus("Searching and downloading...");
+  try{
+    const q=encodeURIComponent(document.getElementById("arxivQuery").value);
+    const n=document.getElementById("maxResults").value;
+    const r=await fetch(`/api/arxiv/download?query=${q}&max_results=${n}`,
+      {method:"POST"});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"Download failed");
+    setStatus(`Downloaded and indexed ${d.count} paper(s).`);
+  }catch(e){setStatus(e.message);}
+}
+
+async function ask(){
+  const question=document.getElementById("question").value;
+  document.getElementById("answer").textContent="Thinking...";
+  document.getElementById("sources").innerHTML="";
+
+  try{
+    const r=await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({question})
+    });
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"Chat failed");
+
+    document.getElementById("answer").textContent=d.answer;
+
+    for(const source of (d.sources||[])){
+      const li=document.createElement("li");
+      li.textContent=source;
+      document.getElementById("sources").appendChild(li);
+    }
+  }catch(e){
+    document.getElementById("answer").textContent=e.message;
+  }
+}
+
+function setStatus(text){
+  document.getElementById("status").textContent=" "+text;
+}
+</script>
+</body>
+</html>
